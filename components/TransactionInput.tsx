@@ -162,6 +162,7 @@ export default function TransactionInput({
           placeholder="dzień"
           inputMode="numeric"
           value={day}
+          autoFocus
           onChange={(e) => setDay(e.target.value.replace(/[^\d]/g, ""))}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
