@@ -27,6 +27,12 @@ export default function TransactionInput({
   const descriptionRef = useRef<HTMLInputElement | null>(null);
   const amountRef = useRef<HTMLInputElement | null>(null);
 
+ useEffect(() => {
+  setTimeout(() => {
+    dayRef.current?.focus();
+  }, 50);
+}, []);
+
   const maxDay = useMemo(() => daysInMonth(month), [month]);
 
   useEffect(() => {
