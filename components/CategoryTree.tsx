@@ -421,4 +421,11 @@ function CategoryTree({
   );
 }
 
-export default React.memo(CategoryTree);
+export default React.memo(CategoryTree, (prev, next) => {
+  return (
+    prev.month === next.month &&
+    prev.categories === next.categories &&
+    prev.transactions === next.transactions &&
+    prev.session === next.session
+  );
+});

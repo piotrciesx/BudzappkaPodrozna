@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 import {
   downloadCsv,
@@ -18,7 +18,43 @@ import CategoryTree from "../components/CategoryTree";
 export default function Page() {
   const [session, setSession] = useState<any>(null);
   const [month, setMonth] = useState(new Date());
-  const [theme, setTheme] = useState("light");
+  const [animDirection, setAnimDirection] = useState<"left" | "right" | null>(null);
+  const touchStartX = useRef<number | null>(null);
+
+function handleTouchStart(e: React.TouchEvent) {
+  touchStartX.current = e.touches[0].clientX;
+}
+
+function handleTouchEnd(e: React.TouchEvent) {
+  if (touchStartX.current === null) return;
+
+  const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+
+  if (deltaX > 60) {
+    setAnimDirection("right");
+
+    setMonth((prev) => {
+      const d = new Date(prev);
+      d.setMonth(d.getMonth() - 1);
+      return d;
+    });
+  }
+
+  if (deltaX < -60) {
+    setAnimDirection("left");
+
+    setMonth((prev) => {
+      const d = new Date(prev);
+      d.setMonth(d.getMonth() + 1);
+      return d;
+    });
+  }
+
+  setTimeout(() => setAnimDirection(null), 250);
+  touchStartX.current = null;
+}
+ const CACHE_KEY = "budzappka_data";
+const [theme, setTheme] = useState("light");
   const [categories, setCategories] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,8 +84,20 @@ export default function Page() {
   }, [theme]);
 
   useEffect(() => {
-    loadCategories();
-  }, []);
+  const cached = localStorage.getItem(CACHE_KEY);
+
+  if (cached) {
+    try {
+      const data = JSON.parse(cached);
+      if (data.categories) setCategories(data.categories);
+      if (data.transactions) setTransactions(data.transactions);
+    } catch (e) {
+      console.error("Cache parse error", e);
+    }
+  }
+
+  loadCategories();
+}, []);
 
   useEffect(() => {
     if (!session?.user?.id) {
@@ -77,20 +125,39 @@ export default function Page() {
   }
 
   async function loadMonthTransactions() {
-    if (!session?.user?.id) {
-      setTransactions([]);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    const list = await fetchMonthTransactions({
-      userId: session.user.id,
-      month,
-    });
-    setTransactions(list);
+  if (!session?.user?.id) {
+    setTransactions([]);
     setLoading(false);
+    return;
   }
+
+  setLoading(true);
+
+  const list = await fetchMonthTransactions({
+    userId: session.user.id,
+    month,
+  });
+
+  setTransactions(list);
+
+  // zapis do cache
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    const parsed = cached ? JSON.parse(cached) : {};
+
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({
+        ...parsed,
+        transactions: list,
+      })
+    );
+  } catch (e) {
+    console.error("Cache save error", e);
+  }
+
+  setLoading(false);
+}
 
   async function handleLogin() {
     await supabase.auth.signInWithOAuth({
@@ -243,7 +310,11 @@ export default function Page() {
   const isLoggedIn = !!session?.user;
 
   return (
-    <div className="app-shell">
+    <div
+  className={`app-shell ${animDirection ? `slide-${animDirection}` : ""}`}
+  onTouchStart={handleTouchStart}
+  onTouchEnd={handleTouchEnd}
+>
       <TopBar
         month={month}
         setMonth={setMonth}
