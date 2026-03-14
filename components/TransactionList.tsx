@@ -89,71 +89,105 @@ export default function TransactionList({
     return <div className="empty-list">Brak wpisów.</div>;
   }
 
+  // grupowanie po dniu
+  const grouped: any = {};
+
+  list.forEach((t) => {
+    const key = t.day || "no-day";
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(t);
+  });
+
+  const sortedDays = Object.keys(grouped).sort((a, b) => {
+    if (a === "no-day") return 1;
+    if (b === "no-day") return -1;
+    return Number(b) - Number(a);
+  });
+
   return (
     <div className="tx-list-wrap">
-      {list.map((t) => {
-        const isEditing = editingId === t.id;
-
-        return (
-          <div key={t.id} className="tx-row">
-            {!isEditing ? (
-              <>
-                <div className="tx-row-left">
-                  {t.day ? <span className="tx-day">{t.day}</span> : null}
-                  {t.description ? (
-                    <span className="tx-description">{t.description}</span>
-                  ) : null}
-                </div>
-
-                <div className="tx-row-right">
-                  <span className="tx-amount">{Number(t.amount).toFixed(2)}</span>
-
-                  {session?.user?.id && (
-                    <>
-                      <button className="cat-mini-btn" onClick={() => startEdit(t)}>
-                        ✎
-                      </button>
-                      <button
-                        className="cat-mini-btn danger-mini"
-                        onClick={() => handleDelete(t.id)}
-                      >
-                        🗑
-                      </button>
-                    </>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="edit-row">
-                <input
-                  className="tx-day-input"
-                  value={editDay}
-                  onChange={(e) => setEditDay(e.target.value.replace(/[^\d]/g, ""))}
-                  placeholder="dzień"
-                />
-                <input
-                  className="tx-description-input"
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  placeholder="opis"
-                />
-                <input
-                  className="tx-amount-input"
-                  value={editAmount}
-                  onChange={(e) => setEditAmount(e.target.value.replace(",", "."))}
-                  placeholder="kwota"
-                />
-                <button className="soft-btn" onClick={saveEdit}>
-                  Zapisz
-                </button>
-                <button className="soft-btn" onClick={() => setEditingId(null)}>
-                  Anuluj
-                </button>
-              </div>
-            )}
+      {sortedDays.map((day) => (
+        <div key={day}>
+          <div className="tx-day-group">
+            {day === "no-day" ? "bez dnia" : day}
           </div>
-        );
-      })}
+
+          {grouped[day].map((t: any) => {
+            const isEditing = editingId === t.id;
+
+            return (
+              <div key={t.id} className="tx-row">
+                {!isEditing ? (
+                  <>
+                    <div className="tx-row-left">
+                      {t.description ? (
+                        <span className="tx-description">{t.description}</span>
+                      ) : null}
+                    </div>
+
+                    <div className="tx-row-right">
+                      <span className="tx-amount">
+                        {Number(t.amount).toFixed(2)}
+                      </span>
+
+                      {session?.user?.id && (
+                        <>
+                          <button
+                            className="cat-mini-btn"
+                            onClick={() => startEdit(t)}
+                          >
+                            ✎
+                          </button>
+                          <button
+                            className="cat-mini-btn danger-mini"
+                            onClick={() => handleDelete(t.id)}
+                          >
+                            🗑
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="edit-row">
+                    <input
+                      className="tx-day-input"
+                      value={editDay}
+                      onChange={(e) =>
+                        setEditDay(e.target.value.replace(/[^\d]/g, ""))
+                      }
+                      placeholder="dzień"
+                    />
+                    <input
+                      className="tx-description-input"
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      placeholder="opis"
+                    />
+                    <input
+                      className="tx-amount-input"
+                      value={editAmount}
+                      onChange={(e) =>
+                        setEditAmount(e.target.value.replace(",", "."))
+                      }
+                      placeholder="kwota"
+                    />
+                    <button className="soft-btn" onClick={saveEdit}>
+                      Zapisz
+                    </button>
+                    <button
+                      className="soft-btn"
+                      onClick={() => setEditingId(null)}
+                    >
+                      Anuluj
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }
